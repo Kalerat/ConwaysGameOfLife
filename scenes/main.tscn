@@ -1,0 +1,136 @@
+[gd_scene load_steps=9 format=3 uid="uid://gymncvqgghy1"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_5podj"]
+[ext_resource type="Script" path="res://scripts/Camera.gd" id="2_qug51"]
+[ext_resource type="Script" path="res://scripts/SimSpeed.gd" id="3_gf0jj"]
+[ext_resource type="Texture2D" uid="uid://dbfbhbkkqk3sp" path="res://res/speed.256x205.png" id="4_wfy50"]
+[ext_resource type="Texture2D" uid="uid://0g4e4h5pp2ic" path="res://res/next-step-1-32.png" id="5_11l33"]
+[ext_resource type="Texture2D" uid="uid://dygeidb1kb8x3" path="res://res/grid-8-32.png" id="6_0e7cc"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_igpo5"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_doghj"]
+bg_color = Color(0, 0, 0, 0)
+
+[node name="Main" type="Node2D"]
+process_mode = 3
+material = SubResource("CanvasItemMaterial_igpo5")
+script = ExtResource("1_5podj")
+
+[node name="Camera" type="Camera2D" parent="."]
+process_mode = 3
+position = Vector2(640, 360)
+script = ExtResource("2_qug51")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ButtonControler" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="ColorRect" type="ColorRect" parent="UI/ButtonControler"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -270.0
+offset_top = -160.0
+offset_right = -20.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.219608, 0.219608, 0.219608, 0.87451)
+
+[node name="PlayButton" type="Button" parent="UI/ButtonControler"]
+layout_mode = 0
+offset_left = -260.0
+offset_top = -60.0
+offset_right = -190.0
+offset_bottom = -20.0
+theme_override_font_sizes/font_size = 22
+toggle_mode = true
+text = "Start"
+
+[node name="SingleStepButton" type="Button" parent="UI/ButtonControler"]
+layout_mode = 0
+offset_left = -180.0
+offset_top = -60.0
+offset_right = -110.0
+offset_bottom = -20.0
+theme_override_font_sizes/font_size = 22
+text = "Step
+"
+
+[node name="SimSpeedSlider" type="HSlider" parent="UI/ButtonControler"]
+layout_mode = 0
+offset_left = -210.0
+offset_top = -90.0
+offset_right = -30.0
+offset_bottom = -70.0
+min_value = 1.0
+max_value = 50.0
+step = 0.1
+value = 5.0
+exp_edit = true
+script = ExtResource("3_gf0jj")
+
+[node name="Sprite2D" type="Sprite2D" parent="UI/ButtonControler/SimSpeedSlider"]
+position = Vector2(-20, 10)
+scale = Vector2(0.1, 0.1)
+texture = ExtResource("4_wfy50")
+
+[node name="ResetButton" type="Button" parent="UI/ButtonControler"]
+layout_mode = 0
+offset_left = -100.0
+offset_top = -60.0
+offset_right = -30.0
+offset_bottom = -21.0
+theme_override_font_sizes/font_size = 22
+text = "Reset"
+
+[node name="StepCounterLabel" type="Label" parent="UI/ButtonControler"]
+layout_mode = 0
+offset_left = -210.0
+offset_top = -150.0
+offset_right = -150.0
+offset_bottom = -124.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_doghj")
+text = "0"
+horizontal_alignment = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="UI/ButtonControler/StepCounterLabel"]
+position = Vector2(-20, 10)
+scale = Vector2(0.8, 0.8)
+texture = ExtResource("5_11l33")
+
+[node name="NodeSizeSlider" type="HSlider" parent="UI/ButtonControler"]
+layout_mode = 0
+offset_left = -210.0
+offset_top = -120.0
+offset_right = -30.0
+offset_bottom = -100.0
+min_value = 1.0
+max_value = 32.0
+value = 16.0
+rounded = true
+
+[node name="Sprite2D2" type="Sprite2D" parent="UI/ButtonControler/NodeSizeSlider"]
+position = Vector2(-20, 10)
+scale = Vector2(0.8, 0.8)
+texture = ExtResource("6_0e7cc")
+
+[connection signal="camer_moved" from="Camera" to="." method="_on_camera_camer_moved"]
+[connection signal="toggled" from="UI/ButtonControler/PlayButton" to="." method="_on_button_toggled"]
+[connection signal="pressed" from="UI/ButtonControler/SingleStepButton" to="." method="_on_single_step_pressed"]
+[connection signal="ready" from="UI/ButtonControler/SimSpeedSlider" to="." method="_on_sim_speed_ready"]
+[connection signal="value_changed" from="UI/ButtonControler/SimSpeedSlider" to="." method="_on_sim_speed_value_changed"]
+[connection signal="pressed" from="UI/ButtonControler/ResetButton" to="." method="_on_reset_button_pressed"]
+[connection signal="value_changed" from="UI/ButtonControler/NodeSizeSlider" to="." method="_on_node_size_slider_value_changed"]
