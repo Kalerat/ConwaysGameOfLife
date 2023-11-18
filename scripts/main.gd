@@ -1,10 +1,13 @@
 extends Node2D
 
 
-@export var node_size: int = 16:
+@export var node_size: int = 14:
 	set = set_node_size
 @export var border_size: int = 1:
 	set = set_border_size
+	
+@export var active_node_color = Color(1,0,0)
+@export var inactive_node_color = Color(1, 1, 1)
 
 var sim_speed = 1.0
 var time_since_last_update = 0.0
@@ -13,8 +16,7 @@ var do_step = false
 var sim_step_counter = 0
 
 var combined_size: int
-var node_count_fit_to_viewport: Vector2
-var bounding_rect: Rect2
+var bounding_rect: Rect2i
 var active_nodes = []
 var visible_nodes = Dictionary()
 var center_node: Vector2i
@@ -58,7 +60,7 @@ func get_coords_from_node_id(node_id: Vector2i) -> Vector2i:
 	
 	
 func _process(delta):
-	time_since_last_update += delta
+	time_since_last_update += delta 
 	if(time_since_last_update >= sim_speed && is_running == true) || do_step == true:
 		time_since_last_update = 0
 		sim_step_counter += 1
@@ -109,20 +111,28 @@ func _process(delta):
 		queue_redraw()
 			
 
-func _draw():
-	var cur_y =bounding_rect.position.y
-	while(cur_y <= bounding_rect.position.y + bounding_rect.size.y):
-		var cur_x = bounding_rect.position.x
-		while(cur_x <= bounding_rect.position.x + bounding_rect.size.x):
-			var node_color: Color
-			if(active_nodes.has(get_node_id_from_coords(Vector2i(cur_x, cur_y)))):
-				node_color = Color(1, 0, 0)
-			else:
-				node_color = Color(1, 1, 1)
 
-			draw_rect(Rect2(cur_x, cur_y, node_size, node_size), node_color)
-			cur_x += combined_size
-		cur_y += combined_size
+func _draw():
+	draw_rect(bounding_rect, inactive_node_color)
+	var line_count_x = (bounding_rect.size.x / combined_size)
+	var line_count_y = (bounding_rect.size.y / combined_size)
+	
+	for i in line_count_x:
+		var line_from = Vector2i(bounding_rect.position.x + (i*combined_size), bounding_rect.position.y)
+		var line_to	= 	Vector2i(bounding_rect.position.x + (i*combined_size), bounding_rect.position.y + bounding_rect.size.y)
+		draw_line(line_from, line_to, Color(0,0,0),border_size)
+	for i in line_count_y:
+		var line_from = Vector2i(bounding_rect.position.x, bounding_rect.position.y + (i*combined_size))
+		var line_to	= 	Vector2i(bounding_rect.position.x + bounding_rect.size.x, bounding_rect.position.y + (i*combined_size))
+		draw_line(line_from, line_to, Color(0,0,0),border_size)
+	
+	for node in active_nodes:
+		var pos = get_coords_from_node_id(node)
+		var size = Vector2i(node_size, node_size)
+		var node_rect = Rect2i(pos, size)
+		draw_rect(node_rect, active_node_color)
+		
+
 
 
 
@@ -140,7 +150,7 @@ func set_border_size(value):
 func calculate_closest_node_corner(pos_x: int, pos_y: int) -> Vector2i:
 	var res: Vector2i
 	if(pos_x >= 0):
-		res.x = pos_x - (pos_x % combined_size)
+		res.x = (pos_x - (pos_x % combined_size))
 	else:
 		var tmp = abs(pos_x)
 		var tmp2 = tmp + (combined_size - (tmp % combined_size))
@@ -155,11 +165,9 @@ func calculate_closest_node_corner(pos_x: int, pos_y: int) -> Vector2i:
 	
 	return res
 	
-	# Calculates a Border around the Viewport
-	# Used to only draw visible nodes
-
-
-
+	
+# Calculates a Border around the Viewport
+# Used to only draw visible nodes
 func recalc_bounding_rect():
 	combined_size = node_size + border_size
 	if(!camera_moved):
@@ -167,7 +175,7 @@ func recalc_bounding_rect():
 	else:
 		camera_moved = false
 	var camera_pos = $Camera.position
-	var viewport_size = get_viewport_rect().size
+	var viewport_size: Vector2i = get_viewport_rect().size
 	var camera_corner_pos = Vector2i(camera_pos.x - (viewport_size.x / 2), camera_pos.y - (viewport_size.y / 2))
 	
 	# Calculate the last visible node in the upper left corner
@@ -181,7 +189,6 @@ func recalc_bounding_rect():
 	bounding_rect.size.x += combined_size
 	bounding_rect.size.y += combined_size
 	queue_redraw()
-
 
 func _on_camera_camer_moved():
 	center_node = get_node_id_from_coords($Camera.position)
@@ -202,6 +209,12 @@ func _unhandled_input(event):
 				active_nodes.pop_at(index)
 			sim_step_counter = 0
 			queue_redraw()
+	elif event is InputEventKey:
+		if(event.is_action_pressed("toggle_fullscreen")):
+			if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			else:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 
