@@ -1,10 +1,11 @@
 extends Node2D
 
 
-@export var node_size: int = 14:
+@export var node_size: int = 15:
 	set = set_node_size
 @export var border_size: int = 1:
 	set = set_border_size
+var combined_size: int = node_size + border_size
 	
 @export var active_node_color = Color(1,0,0)
 @export var inactive_node_color = Color(1, 1, 1)
@@ -15,7 +16,6 @@ var is_running = false
 var do_step = false
 var sim_step_counter = 0
 
-var combined_size: int
 var bounding_rect: Rect2i
 var active_nodes = []
 var visible_nodes = Dictionary()
@@ -27,23 +27,23 @@ func _ready():
 	combined_size = node_size + border_size
 	center_node = get_node_id_from_coords($Camera.position)
 	recalc_bounding_rect()
-	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	get_tree().get_root().size_changed.connect(_resize)
 	
 
 func _resize():
 	recalc_bounding_rect()
 	
-	
+# Reset the grid to an empty state
 func reset_board():
 	active_nodes.clear()
 	sim_step_counter = 0
 	$UI/ButtonControler/StepCounterLabel.text = str(sim_step_counter)
 	$UI/ButtonControler/PlayButton.text = "Start"
+	$UI/ButtonControler/PlayButton.button_pressed = false
 	is_running = false
 	queue_redraw()
 
-
+# Translate viewport coordinates into a resolution and node size independent node index
 func get_node_id_from_coords(pos: Vector2i) -> Vector2i:
 	var res: Vector2i
 	res.x = pos.x / combined_size
@@ -51,7 +51,7 @@ func get_node_id_from_coords(pos: Vector2i) -> Vector2i:
 	
 	return res
 
-
+# Translates a node index into viewport coordinates
 func get_coords_from_node_id(node_id: Vector2i) -> Vector2i:
 	var res: Vector2i
 	res.x = node_id.x * combined_size
@@ -113,10 +113,13 @@ func _process(delta):
 
 
 func _draw():
+	
+	#Draw Background
 	draw_rect(bounding_rect, inactive_node_color)
 	var line_count_x = (bounding_rect.size.x / combined_size)
 	var line_count_y = (bounding_rect.size.y / combined_size)
 	
+	#Draw the grid
 	for i in line_count_x:
 		var line_from = Vector2i(bounding_rect.position.x + (i*combined_size), bounding_rect.position.y)
 		var line_to	= 	Vector2i(bounding_rect.position.x + (i*combined_size), bounding_rect.position.y + bounding_rect.size.y)
@@ -125,18 +128,19 @@ func _draw():
 		var line_from = Vector2i(bounding_rect.position.x, bounding_rect.position.y + (i*combined_size))
 		var line_to	= 	Vector2i(bounding_rect.position.x + bounding_rect.size.x, bounding_rect.position.y + (i*combined_size))
 		draw_line(line_from, line_to, Color(0,0,0),border_size)
-	
-	for node in active_nodes:
-		var pos = get_coords_from_node_id(node)
-		var size = Vector2i(node_size, node_size)
-		var node_rect = Rect2i(pos, size)
-		draw_rect(node_rect, active_node_color)
 		
+	#Color all the active nodes
+	for node in active_nodes:
+		var pos: Vector2 = get_coords_from_node_id(node)
+		#Hack to fix the weirdness of Godot's custom shape rendering
+		#Try to find an actual fix for this?
+		pos += Vector2(0.5, 0.5)
+		var size = Vector2i(node_size, node_size)
+		var node_rect = Rect2(pos, size)
+		draw_rect(node_rect, active_node_color)
 
 
 
-
-			
 func set_node_size(value):
 	node_size = value
 	recalc_bounding_rect()
@@ -147,6 +151,7 @@ func set_border_size(value):
 	recalc_bounding_rect()
 	
 
+# Returns the corner coordinates of the node the supplied coordinates fall into
 func calculate_closest_node_corner(pos_x: int, pos_y: int) -> Vector2i:
 	var res: Vector2i
 	if(pos_x >= 0):
@@ -174,8 +179,8 @@ func recalc_bounding_rect():
 		$Camera.position = get_coords_from_node_id(center_node)
 	else:
 		camera_moved = false
-	var camera_pos = $Camera.position
-	var viewport_size: Vector2i = get_viewport_rect().size
+	var camera_pos: Vector2i = round($Camera.position)
+	var viewport_size: Vector2i = round(get_viewport_rect().size)
 	var camera_corner_pos = Vector2i(camera_pos.x - (viewport_size.x / 2), camera_pos.y - (viewport_size.y / 2))
 	
 	# Calculate the last visible node in the upper left corner
@@ -190,8 +195,9 @@ func recalc_bounding_rect():
 	bounding_rect.size.y += combined_size
 	queue_redraw()
 
+
 func _on_camera_camer_moved():
-	center_node = get_node_id_from_coords($Camera.position)
+	center_node = get_node_id_from_coords(round($Camera.position))
 	camera_moved = true
 	recalc_bounding_rect()
 
@@ -199,7 +205,7 @@ func _on_camera_camer_moved():
 func _unhandled_input(event):
 	if event is InputEventMouseButton:
 		if event.button_mask == MOUSE_BUTTON_MASK_LEFT:
-			var mouse_pos: Vector2i = get_global_mouse_position()
+			var mouse_pos: Vector2i = round(get_global_mouse_position())
 			var clicked_node = calculate_closest_node_corner(mouse_pos.x, mouse_pos.y)
 			var node_id = get_node_id_from_coords(clicked_node)
 			var index = active_nodes.find(node_id)
@@ -215,6 +221,7 @@ func _unhandled_input(event):
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			else:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		
 
 
 
